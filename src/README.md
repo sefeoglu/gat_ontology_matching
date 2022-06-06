@@ -10,4 +10,4 @@
 ## 3. Preprocessing
 
 
-## 4. Representation Learning using GNN based on MessagePassing Network
+## 4. GAT for Ontology Matching
