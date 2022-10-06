@@ -28,9 +28,15 @@ output_folder = outputs/
 ````
 
 * 3.) train the model 
+```` 
+python train_model.py
 
+````
 * 4.) test the model
+````
+python test_model.py
+````
 
-* 5.) evaluate the model with MELT
+* 5.) evaluate the model with the MELT
 
 Note: The codes in train_model.py and test_model.py are partially based on the VeeAlign project with the permission of its main author. I would like to thank the main author.
