@@ -34,7 +34,7 @@ python train_model.py
 ````
 * 4.) test the model
 ````
-python test_model.py
+python test_model.py ${source.rdf} ${target.rdf}
 ````
 
 * 5.) evaluate the model with the MELT
