@@ -11,3 +11,5 @@ networkx==2.8.6
 seaborn==1.6.1
 matplotlib==
 configparser
+sex
+entence-transformers==2.2.2
