@@ -27,7 +27,7 @@ threshold_results = {}
 class Trainer(object):
 
     def __init__(self, num_epochs, batch_size, lr, weight_decay, MODEL_NAME):
-        PREFIX_PATH = "/".join(os.path.dirname(os.path.abspath(__file__)).split("/")[:-1]) + "/graph_representation/"
+        PREFIX_PATH = "/".join(os.path.dirname(os.path.abspath(__file__)).split("/")[:-1]) + "/"
 
         print ("Prefix path: ", PREFIX_PATH)
     
@@ -38,29 +38,25 @@ class Trainer(object):
         # Initialize variables from config
 
         self.quick_mode = str(config["General"]["quick_mode"])
-
         self.K = int(config["General"]["K"])
         self.ontology_split = str(config["General"]["ontology_split"]) == "True"
         self.max_false_examples = int(config["General"]["max_false_examples"])
-
         self.train_folder = PREFIX_PATH + "datasets/" + str(config["General"]["dataset"]) + "/ontologies/"
-        self.cached_embeddings_path = PREFIX_PATH + str(config["Paths"]["embedding_cache_path"])
-        self.model_path = PREFIX_PATH + str(config["Paths"]["save_model_path"])+str(MODEL_NAME)
-        self.alignment_folder = PREFIX_PATH + str(config['Paths']['dataset_folder']) + str(config["General"]['dataset']) + str(config["Paths"]["alignment_folder"])
+        self.model_path = PREFIX_PATH + str(config["Paths"]["save_model_path"])
+        self.alignment_folder = PREFIX_PATH +  "datasets/" + str(config["General"]['dataset']) + str(config["Paths"]["alignment_folder"])
         self.spellcheck = config["Preprocessing"]["has_spellcheck"] == "True"
-
         self.max_paths = int(config["Parameters"]["max_paths"])
         self.max_pathlen = int(config["Parameters"]["max_pathlen"])
-     
+        
         ## hyperparamaters
         self.lr = lr
         self.num_epochs = num_epochs
         self.weight_decay = weight_decay
         self.batch_size = batch_size
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-        self.split_data()
     
     
+ 
     def train(self):
         
         self.model = SiamHAN(self.emb_vals, self.max_types, self.max_paths, self.max_pathlen).to(self.device)
@@ -68,7 +64,7 @@ class Trainer(object):
      
         global threshold_results
         print ("Starting training...")
-
+        old_loss = np.infty
         for epoch in range(self.num_epochs):
 
             inputs_pos_ent, nodes_pos_ent, targets_pos_ent = self.generate_input(self.train_data_t_ent, 1, self.neighbours_dicts_ent, self.emb_indexer)
@@ -137,22 +133,21 @@ class Trainer(object):
 
                 if batch_idx%5000 == 0:
                     print ("Epoch: {} Idx: {} Loss: {}".format(epoch, batch_idx, loss.item()))  
+                    if old_loss > loss:
+                        self.model.eval()
+
+                        print ("Optimizing threshold...")
+                        self.optimize_threshold(self.model, self.val_data_t_ent, self.batch_size)
             
+                        threshold_results_mean = {el: np.mean(threshold_results[el], axis=0) for el in threshold_results}    
+                        threshold = max(threshold_results_mean.keys(), key=(lambda key: threshold_results_mean[key][2]))
+                
+                        self.model.threshold = nn.Parameter(torch.DoubleTensor([threshold]))
 
+                        torch.save(self.model.state_dict(), self.model_path)
+                        print (" Saved the best model at {}".format(self.model_path))
+                        old_loss = loss
         print ("Training complete!")
-
-        self.model.eval()
-
-        print ("Optimizing threshold...")
-        self.optimize_threshold(self.model, self.val_data_t_ent, self.batch_size)
-        
-        threshold_results_mean = {el: np.mean(threshold_results[el], axis=0) for el in threshold_results}    
-        threshold = max(threshold_results_mean.keys(), key=(lambda key: threshold_results_mean[key][2]))
-   
-        self.model.threshold = nn.Parameter(torch.DoubleTensor([threshold]))
-
-        torch.save(self.model.state_dict(), self.model_path)
-        print ("Done. Saved model at {}".format(self.model_path))
 
     def load_alignment(self):
         ontologies_in_alignment = []
@@ -171,7 +166,7 @@ class Trainer(object):
         # Preprocessing and parsing input data for training
         alignments, ontologies_in_alignment = self.load_alignment()
         
-        preprocessing = GraphParser(ontologies_in_alignment, alignments)
+        preprocessing = GraphParser(ontologies_in_alignment, self.alignment_folder, self.train_folder, alignments)
         self.data_ent, self.data_prop, self.emb_indexer_new, self.emb_indexer_inv_new, self.emb_vals_new, self.neighbours_dicts_ent, self.neighbours_dicts_prop, self.max_types = preprocessing.process(spellcheck=True)
         
         emb_indexer_cached, emb_indexer_inv_cached, emb_vals_cached = {}, {}, []
@@ -430,6 +425,7 @@ class Trainer(object):
         return tuple([el.split("#")[0] for el in key]) not in test_onto
 
     def generate_data_neighbourless(self, elem_tuple, emb_indexer):
+        # print(emb_indexer['conference#Abstract'])
         return [emb_indexer[elem] for elem in elem_tuple]
 
     def embedify(self,seq, emb_indexer):
@@ -479,10 +475,11 @@ class Trainer(object):
     def count_non_unk(self, elem):
         return len([l for l in elem if l!="<UNK>"])
 
+
+
 if __name__ == "__main__":
     
-    PREFIX_PATH = "/".join(os.path.dirname(os.path.abspath(__file__)).split("/")[:-1]) + "/graph_representation/"
-    print ("Prefix path: ", PREFIX_PATH)
+    PREFIX_PATH = "/".join(os.path.dirname(os.path.abspath(__file__)).split("/")[:-1]) + "/"
 
     # Read `config.ini` and initialize parameter values
     config = configparser.ConfigParser()
@@ -491,7 +488,7 @@ if __name__ == "__main__":
     num_epochs = int(config["Hyperparameters"]["num_epochs"])
     weight_decay = float(config["Hyperparameters"]["weight_decay"])
     batch_size = int(config["Hyperparameters"]["batch_size"])
-    MODEL_NAME ="model.pt"
+    MODEL_NAME = config["Paths"]["save_model_path"]
     trainer = Trainer(num_epochs, batch_size, lr, weight_decay, MODEL_NAME)
     trainer.split_data()
     trainer.train()

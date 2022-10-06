@@ -12,17 +12,16 @@ SCRIPT_DIR = os.path.dirname(os.path.realpath(os.path.join(os.getcwd(), os.path.
 sys.path.append(os.path.normpath(os.path.join(SCRIPT_DIR, PACKAGE_PARENT)))
 
 
-from graph_attention import GraphAttentionLayer as GATConv
-from semantic_attention import SemanticAttention
+from graph_attention import GraphAttentionLayer as GAT
 
 
-class HANLayer(nn.Module):
+
+class GATLayer(nn.Module):
  
     def __init__(self, in_size, out_size, dropout):
         super().__init__()
         self.alpha = 0.2
-        self.gat = GATConv(in_size, out_size, dropout, alpha=self.alpha, concat=True)
-        self.semantic_attention = SemanticAttention(in_size, out_size)
+        self.gat = GAT(in_size, out_size, dropout, alpha=self.alpha, concat=True)
         
     def forward(self, hs, adj):
         
@@ -32,7 +31,7 @@ class HANLayer(nn.Module):
         semantic_embeddings = torch.stack(semantic_embeddings)
 
         
-        return  self.semantic_attention(semantic_embeddings)             
+        return  semantic_embeddings            
 
 class SiamHAN(nn.Module):
 
@@ -50,7 +49,7 @@ class SiamHAN(nn.Module):
        
         self.threshold = nn.Parameter(torch.DoubleTensor([threshold]))
         self.threshold.requires_grad = False
-        self.gnn = HANLayer(self.embedding_dim, self.embedding_dim, self.dropout)
+        self.gnn = GATLayer(self.embedding_dim, self.embedding_dim, self.dropout)
         
         ### Embedding layer
         self.name_embedding = nn.Embedding(len(emb_vals), self.embedding_dim)

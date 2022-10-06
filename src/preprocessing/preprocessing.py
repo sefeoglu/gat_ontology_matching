@@ -3,13 +3,12 @@ import sys, configparser
 import os, itertools, re, logging, requests, urllib
 import pandas as pd
 import networkx as nx
-from xml.dom import minidom
 import itertools
 import numpy as np
 import logging
 from scipy import spatial
-
 from sentence_transformers import SentenceTransformer
+from xml.dom import minidom
 
 PACKAGE_PARENT = '.'
 SCRIPT_DIR = os.path.dirname(os.path.realpath(os.path.join(os.getcwd(), os.path.expanduser(__file__))))
@@ -17,7 +16,6 @@ sys.path.append(os.path.normpath(os.path.join(SCRIPT_DIR, PACKAGE_PARENT)))
 
 
 from OntologyParser import OntologyParser
-
 
 try:
     # ubuntu works with USE(universal sentence encoder), otherwise it will run with bert sentence encoder
@@ -32,32 +30,44 @@ def cos_sim(a,b):
 
 class GraphParser(object):
 
-    def __init__(self, ontologies_in_alignment, alignments=None):
+    def __init__(self, ontologies_in_alignment, alignments_folder=None, train_folder=None, alignments=None):
         ### Folder Definition ###
 
-        self.prefix_path = "/".join(os.path.dirname(os.path.abspath(__file__)).split("/")[:-2]) + "/graph_representation/"
-        config = configparser.ConfigParser()
-        config.read(self.prefix_path + 'config.ini')
+
         if alignments == None:
            self.alignments = [] 
         else:
             self.alignments = alignments
-            
+        if train_folder == None or alignments_folder == None:
+            self.prefix_path = "/".join(os.path.dirname(os.path.abspath(__file__)).split("/")[:-2]) + "/"
+            config = configparser.ConfigParser()
+            config.read(self.prefix_path + 'config.ini')
+            self.train_folder = os.path.dirname(ontologies_in_alignment[0][0])+"/"#self.prefix_path + "datasets/" + str(config["General"]["dataset"]) + "/ontologies/"
+  
+            self.alignment_folder =  self.prefix_path + "datasets/" + str(config["General"]["dataset"]) + "/alignments/"
+    
+        else: 
+            self.train_folder = train_folder
+            self.alignment_folder = alignments_folder
+        
         self.ontologies_in_alignment = ontologies_in_alignment
-        self.train_folder = self.prefix_path + str(config['Paths']['dataset_folder']) + str(config["General"]['dataset'])+'/ontologies/'
-        self.clean_set = self.prefix_path + str(config["Paths"]["spreadsheet_folder"]) + str(config["Paths"]["clean_dataset"])
-        self.preprocessed_dataset = self.prefix_path + str(config["Paths"]["spreadsheet_folder"]) + str(config["Paths"]["preprocessed_dataset"])
-        self.alignment_folder = self.prefix_path + str(config['Paths']['dataset_folder']) + str(config["General"]['dataset']) + str(config["Paths"]["alignment_folder"])
-        self.output_folder_csv = self.prefix_path + str(config["Paths"]["spreadsheet_folder"]) + str(config['Paths']["dataset_folder"])
-        self.all_data_folder = self.prefix_path + str(config["Paths"]["spreadsheet_folder"])
+        # self.do_filename_lower()
         try:
-            self.USE_link = "https://tfhub.dev/google/universal-sentence-encoder-large/5?tf-hub-format=compressed"
-            self.USE = hub.load(self.USE_link)
+                self.USE_link = "https://tfhub.dev/google/universal-sentence-encoder-large/5?tf-hub-format=compressed"
+                self.USE = hub.load(self.USE_link)
         except:
             pass
         self.model_transformer = SentenceTransformer('distilbert-base-nli-stsb-mean-tokens')
         self.stopwords = ["has"]
 
+
+    def do_filename_lower(self):
+
+        for fileName in os.listdir(self.train_folder):
+            path_file_old = fileName
+            path_file = path_file_old[0].lower()+path_file_old[1:]
+            os.rename(self.train_folder+path_file_old, self.train_folder+path_file)
+            
     def extractUSEEmbeddings(self, words):
         try:
             word_embeddings = self.USE(words).numpy()
@@ -69,7 +79,8 @@ class GraphParser(object):
     def create_spreadsheet_from_triples(self):
         """Creates spreadsheet from triples
         """        
-        file_list = os.listdir(self.train_folder)
+        file_list = ["source.rdf", "target.rdf"]
+        
         subject, predicate, object_ls, ns_l, ontology_list= [], [], [], [], []
         for file_name in file_list:
             ontology_list.append(self.train_folder+file_name)
@@ -85,7 +96,6 @@ class GraphParser(object):
 
         data = {'subject':subject, 'predicate':predicate, 'object': object_ls,'ns':ns_l}
         data_frame = pd.DataFrame(data)
-
         return data_frame
             
             
@@ -100,12 +110,17 @@ class GraphParser(object):
 
     def preprocess_triples(self, data_frame):   
 
-        data_frame["predicate"] = data_frame["predicate"].apply(lambda x: x.split('#')[-1].split("/")[-1].split("pred:")[-1].replace("*>","").split("#")[-1].split("pred:")[-1])
+        for i in range(len(data_frame)):
+            if len(str(data_frame.predicate[i]).split('#')[-1].split("/")[-1].replace("*>","").split("#")[-1])!=0:
+                clean_predicate = str(data_frame.predicate[i]).split('#')[-1].split("/")[-1].replace("*>","").split("#")[-1]
+                data_frame.predicate[i] = clean_predicate
+            if len(str(data_frame.subject[i]).split('#')[-1].split("/")[-1].replace("*>","").split("#")[-1])!=0:
+                clean_subject = str(data_frame.subject[i]).split('#')[-1].split("/")[-1].replace("*>","").split("#")[-1]
+                data_frame.subject[i] = clean_subject
+            if len(str(data_frame.object[i]).split('#')[-1].split("/")[-1].replace("*>","").split("#")[-1])!=0:
+                clean_object = str(data_frame.object[i]).split('#')[-1].split("/")[-1].replace("*>","").split("#")[-1]
+                data_frame.object[i] = clean_object
 
-        data_frame["subject"] = data_frame["subject"].apply(lambda x: x.split('#')[-1].split("/")[-1].split("pred:")[-1].replace("*>","").split("#")[-1].split("pred:")[-1])
-      
-        data_frame["object"] = data_frame["object"].apply(lambda x: x.split('#')[-1].split("/")[-1].split("pred:")[-1].replace("*>","").split("#")[-1].split("pred:")[-1])
-      
         return data_frame
 
     def construct_neighbour_dicts(self,ontologies_in_alignment):
@@ -215,7 +230,7 @@ class GraphParser(object):
         return prop_domain, prop_range, subprop, inverse_prop
 
     def create_graph(self, data_frame):
-        G=nx.from_pandas_edgelist(data_frame, "source", "target", 
+        G = nx.from_pandas_edgelist(data_frame, "source", "target", 
                           edge_attr=True, create_using=nx.MultiDiGraph())
         G = nx.to_undirected(G)
         return G
@@ -367,7 +382,7 @@ class GraphParser(object):
             pass
 
         ## path to root
-        G=nx.from_pandas_edgelist(class_df, "source", "target", 
+        G = nx.from_pandas_edgelist(class_df, "source", "target", 
                           edge_attr=True, create_using=nx.MultiDiGraph())
         all_parents = self.parser.onto.toplayer_classes
         parents = [] 
@@ -499,7 +514,6 @@ class GraphParser(object):
 
 
     def object_cleanup(self, full_data):
-        
         full_data = full_data[full_data.object.str.startswith('nil') == False]
         full_data = full_data[full_data.object.str.startswith('All') == False]
         full_data = full_data[full_data.object.str.startswith('Ontology') == False]
@@ -748,7 +762,9 @@ class GraphParser(object):
 
 
     def process(self, spellcheck=False):
+
         self.data_frame = self.cleaning_process()
+
         gt_mappings = [tuple([elem.split("/")[-1] for elem in el]) for el in self.alignments]
         gt_mappings = [tuple([el.split("#")[0].rsplit(".", 1)[0] +  "#" +  el.split("#")[1] for el in tup]) for tup in gt_mappings]
 
@@ -766,5 +782,5 @@ class GraphParser(object):
         inp = self.remove_stopwords(inp_resolved)
         emb_vals, emb_indexer, emb_indexer_inv = self.extract_embeddings(inp, extracted_elems)
         neighbours_dicts_ent, neighbours_dicts_prop, max_types = self.construct_neighbour_dicts(self.ontologies_in_alignment)
-   
+
         return  ent_mappings, prop_mappings, emb_indexer, emb_indexer_inv, emb_vals, neighbours_dicts_ent, neighbours_dicts_prop, max_types

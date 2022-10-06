@@ -5,27 +5,45 @@ from math import ceil
 import torch
 from torch import nn
 from torch import optim
-import torch.nn.functional as F
-from ontology import *
+import logging
+import tempfile
+from six.moves import urllib
+from xml.dom import minidom
+from urllib.request import urlopen
+
 PACKAGE_PARENT = '..'
 
 SCRIPT_DIR = os.path.dirname(os.path.realpath(os.path.join(os.getcwd(), os.path.expanduser(__file__))))
 sys.path.append(os.path.normpath(os.path.join(SCRIPT_DIR, PACKAGE_PARENT)))
 
-from graph_representation.preprocessing.preprocessing import *
-from graph_representation.preprocessing.preprocessing import GraphParser
+from preprocessing.preprocessing import GraphParser
+from preprocessing.OntologyParser import *
 
 from model.HAN import SiamHAN
+from scipy import spatial
 
+def cos_sim(a,b):
+    return 1 - spatial.distance.cosine(a, b)
 
+def extract_ns(ontology):
+    '''
+    Extracts namespace of an ontology
+    '''
 
- sys.argv[1], sys.argv[2]
+    if ontology.startswith("https://") or ontology.startswith("http://"):
+        ontology_obj = minidom.parse(urlopen(ontology + "/"))
+    else:
+        ontology_obj = minidom.parse(ontology)
 
-#ont_name1, ont_name2 = doc1, doc2
-if ont_name1.endswith("/"):
-    ont_name1 = ont_name1[:-1]
-if ont_name2.endswith("/"):
-    ont_name2 = ont_name2[:-1]
+    ns = ontology_obj.getElementsByTagName("rdf:RDF")[0].getAttribute("xmlns")
+
+    if ns[-1] == "#":
+        return ns
+            
+    return ontology_obj.doctype.entities.item(0).firstChild.nodeValue
+
+ont_name1, ont_name2 = sys.argv[1].replace("file:",""), sys.argv[2].replace("file:","")
+
 
 PREFIX_PATH = "/".join(os.path.dirname(os.path.abspath(__file__)).split("/")[:-1]) + "/"
 
@@ -36,11 +54,8 @@ config.read(PREFIX_PATH + 'config.ini')
 logging.info("Prefix path: ", PREFIX_PATH)
 
 # Initialize variables from config
-quick_mode = str(config["General"]["quick_mode"])
-
 model_path = PREFIX_PATH + str(config["Paths"]["load_model_path"])
-output_path = PREFIX_PATH + str(config["Paths"]["output_folder"])
-cached_embeddings_path = PREFIX_PATH + str(config["Paths"]["embedding_cache_path"])
+
 spellcheck = config["Preprocessing"]["has_spellcheck"] == "True"
 
 max_paths = int(config["Parameters"]["max_paths"])
@@ -52,15 +67,11 @@ batch_size = int(config["Hyperparameters"]["batch_size"])
 test_ontologies = [tuple([ont_name1, ont_name2])]
 
 # Preprocessing and parsing input data for testing
-
 preprocessing = GraphParser(test_ontologies)
 test_data_ent, test_data_prop, emb_indexer_new, emb_indexer_inv_new, emb_vals_new, neighbours_dicts_ent, neighbours_dicts_prop, max_types = preprocessing.process(spellcheck)
 
-if os.path.isfile(cached_embeddings_path):
-    logging.info("Found cached embeddings...")
-    emb_indexer_cached, emb_indexer_inv_cached, emb_vals_cached = pickle.load(open(cached_embeddings_path, "rb"))
-else:
-    emb_indexer_cached, emb_indexer_inv_cached, emb_vals_cached = {}, {}, []
+
+emb_indexer_cached, emb_indexer_inv_cached, emb_vals_cached = {}, {}, []
 
 emb_vals, emb_indexer, emb_indexer_inv = list(emb_vals_cached), dict(emb_indexer_cached), dict(emb_indexer_inv_cached)
 
@@ -121,30 +132,19 @@ def generate_input(elems, neighbours_dicts):
     return inputs, nodes
 
 def write_results():
-    ont_name_parsed1 = Ontology(ont_name1).extract_ns()
-    ont_name_parsed2 = Ontology(ont_name2).extract_ns()
+    ont_name_parsed1 = extract_ns(ont_name1)
+    ont_name_parsed2 = extract_ns(ont_name2)
     ont_name1_pre = ont_name1 if (ont_name1.startswith("http://") or ont_name1.startswith("https://")) else "file://" + ont_name1
     ont_name2_pre = ont_name2 if (ont_name2.startswith("http://") or ont_name2.startswith("https://")) else "file://" + ont_name2
     rdf = \
-    """<?xml version='1.0' encoding='utf-8' standalone='no'?>
-<rdf:RDF xmlns='http://knowledgeweb.semanticweb.org/heterogeneity/alignment#'
-         xmlns:rdf='http://www.w3.org/1999/02/22-rdf-syntax-ns#'
-         xmlns:xsd='http://www.w3.org/2001/XMLSchema#'
-         xmlns:align='http://knowledgeweb.semanticweb.org/heterogeneity/alignment#'>
-<Alignment>
-  <xml>yes</xml>
-  <level>0</level>
-  <type>**</type>
-  <onto1>
-    <Ontology rdf:about="{}">
-      <location>{}</location>
-    </Ontology>
-  </onto1>
-  <onto2>
-    <Ontology rdf:about="{}">
-      <location>{}</location>
-    </Ontology>
-  </onto2>""".format(ont_name_parsed1.split("#")[0], ont_name1_pre, ont_name_parsed2.split("#")[0], ont_name2_pre)
+    """<?xml version="1.0" encoding="utf-8"?>
+    <rdf:RDF xmlns="http://knowledgeweb.semanticweb.org/heterogeneity/alignment"
+    xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+    xmlns:xsd="http://www.w3.org/2001/XMLSchema#">
+    <Alignment>
+    <xml>yes</xml>
+    <level>0</level>
+    <type>??</type>"""
     for (a,b,score) in final_list:
         mapping = """
   <map>
@@ -152,7 +152,7 @@ def write_results():
       <entity1 rdf:resource='{}'/>
       <entity2 rdf:resource='{}'/>
       <relation>=</relation>
-      <measure rdf:datatype='http://www.w3.org/2001/XMLSchema#float'>{}</measure>
+      <measure rdf:datatype="xsd:float">{}</measure>
     </Cell>
   </map>""".format(ont_name_parsed1 + "#".join(a.split("#")[1:]), ont_name_parsed2 + "#".join(b.split("#")[1:]), score)
         rdf += mapping
@@ -188,23 +188,27 @@ model_dict.update(pretrained_dict)
 model.load_state_dict(model_dict)
 
 threshold = model.threshold.data.cpu().numpy()[0]
-print(threshold)
+
 
 logging.info ("Model loaded successfully!")
 
-print("Optimum Threshold: {}".format(threshold))
-
+# print("Optimum Threshold: {}".format(threshold))
+# print("==============================================")
 model.eval()
 
-logging.info ("Length of test data(ent): {} test data(prop):{}".format(len(test_data_ent), len(test_data_prop)))
+# print("Length of test data(ent): {0} test data(prop):{1}".format(len(test_data_ent), len(neighbours_dicts_ent)))
 
 all_results = OrderedDict()    
 DIRECT_INPUTS = []
+
+
+
 with torch.no_grad():
     inputs_all_ent, nodes_all_ent = generate_input(test_data_ent, neighbours_dicts_ent)
     inputs_all_prop, nodes_all_prop = generate_input(test_data_prop, neighbours_dicts_prop)
     all_inp = list(zip(inputs_all_ent, nodes_all_ent))
     all_inp_shuffled = random.sample(all_inp, len(all_inp))
+    # print("Length of test data(ent): {0} test data(prop):{1}".format(len(all_inp), len(all_inp)))
 
     inputs_all_ent, nodes_all_ent = list(zip(*all_inp_shuffled))
 
@@ -259,12 +263,12 @@ with torch.no_grad():
     
 final_list = [(elem[0], elem[1], str(all_results[elem][0])) for elem in all_results if all_results[elem][1]]
 
-ont_name_parsed1 = Ontology(ont_name1).extract_ns().split("/")[-1].split("#")[0].rsplit(".", 1)[0]
-ont_name_parsed2 = Ontology(ont_name2).extract_ns().split("/")[-1].split("#")[0].rsplit(".", 1)[0]
+ont_name_parsed1 = extract_ns(ont_name1).split("/")[-1].split("#")[0].rsplit(".", 1)[0]
+ont_name_parsed2 = extract_ns(ont_name2).split("/")[-1].split("#")[0].rsplit(".", 1)[0]
 
-f = "HAN-"+ont_name_parsed1.lower() + "-" + ont_name_parsed2.lower() + ".rdf"
-
-open(output_path + f, "w+").write(write_results())
-
+# f = "GraphMatcher-"+ont_name_parsed1.lower() + "-" + ont_name_parsed2.lower() + ".rdf"
+# output_path = output_path +f
+with tempfile.NamedTemporaryFile("w", prefix="alignment_", suffix=".rdf", delete=False) as fout :
+    fout.write(write_results())
 logging.info ("The final alignment file can be found below: ")
-print("file://" + output_path + f)
+print(urllib.parse.urljoin("file:", urllib.request.pathname2url(fout.name)))

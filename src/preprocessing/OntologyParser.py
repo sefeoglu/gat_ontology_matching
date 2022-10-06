@@ -1,7 +1,4 @@
-import  sys
-import os
 
-from rdflib import Graph
 from rdflib import *
 
 import ontospy
