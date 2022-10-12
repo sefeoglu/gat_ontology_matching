@@ -22,7 +22,6 @@ dataset_folder =
 alignment_folder = /alignments/
 save_model_path = congerence.pt
 load_model_path = conference.pt
-embedding_cache_path = saved_models/cached_conference_embeddings.pkl
 output_folder = outputs/
 
 ````
