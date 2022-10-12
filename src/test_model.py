@@ -3,8 +3,6 @@ import numpy as np
 from collections import OrderedDict
 from math import ceil
 import torch
-from torch import nn
-from torch import optim
 import logging
 import tempfile
 from six.moves import urllib
@@ -56,7 +54,7 @@ logging.info("Prefix path: ", PREFIX_PATH)
 # Initialize variables from config
 model_path = PREFIX_PATH + str(config["Paths"]["load_model_path"])
 
-spellcheck = config["Preprocessing"]["has_spellcheck"] == "True"
+
 
 max_paths = int(config["Parameters"]["max_paths"])
 max_pathlen = int(config["Parameters"]["max_pathlen"])
@@ -68,7 +66,7 @@ test_ontologies = [tuple([ont_name1, ont_name2])]
 
 # Preprocessing and parsing input data for testing
 preprocessing = GraphParser(test_ontologies)
-test_data_ent, test_data_prop, emb_indexer_new, emb_indexer_inv_new, emb_vals_new, neighbours_dicts_ent, neighbours_dicts_prop, max_types = preprocessing.process(spellcheck)
+test_data_ent, test_data_prop, emb_indexer_new, emb_indexer_inv_new, emb_vals_new, neighbours_dicts_ent, neighbours_dicts_prop, max_types = preprocessing.process()
 
 
 emb_indexer_cached, emb_indexer_inv_cached, emb_vals_cached = {}, {}, []

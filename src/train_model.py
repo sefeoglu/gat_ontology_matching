@@ -44,7 +44,6 @@ class Trainer(object):
         self.train_folder = PREFIX_PATH + "datasets/" + str(config["General"]["dataset"]) + "/ontologies/"
         self.model_path = PREFIX_PATH + str(config["Paths"]["save_model_path"])
         self.alignment_folder = PREFIX_PATH +  "datasets/" + str(config["General"]['dataset']) + str(config["Paths"]["alignment_folder"])
-        self.spellcheck = config["Preprocessing"]["has_spellcheck"] == "True"
         self.max_paths = int(config["Parameters"]["max_paths"])
         self.max_pathlen = int(config["Parameters"]["max_pathlen"])
         
@@ -167,7 +166,7 @@ class Trainer(object):
         alignments, ontologies_in_alignment = self.load_alignment()
         
         preprocessing = GraphParser(ontologies_in_alignment, self.alignment_folder, self.train_folder, alignments)
-        self.data_ent, self.data_prop, self.emb_indexer_new, self.emb_indexer_inv_new, self.emb_vals_new, self.neighbours_dicts_ent, self.neighbours_dicts_prop, self.max_types = preprocessing.process(spellcheck=True)
+        self.data_ent, self.data_prop, self.emb_indexer_new, self.emb_indexer_inv_new, self.emb_vals_new, self.neighbours_dicts_ent, self.neighbours_dicts_prop, self.max_types = preprocessing.process()
         
         emb_indexer_cached, emb_indexer_inv_cached, emb_vals_cached = {}, {}, []
         self.emb_vals, self.emb_indexer, self.emb_indexer_inv = list(emb_vals_cached), dict(emb_indexer_cached), dict(emb_indexer_inv_cached)

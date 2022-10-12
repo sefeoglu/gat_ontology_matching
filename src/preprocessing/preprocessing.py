@@ -42,7 +42,7 @@ class GraphParser(object):
             self.prefix_path = "/".join(os.path.dirname(os.path.abspath(__file__)).split("/")[:-2]) + "/"
             config = configparser.ConfigParser()
             config.read(self.prefix_path + 'config.ini')
-            self.train_folder = os.path.dirname(ontologies_in_alignment[0][0])+"/"#self.prefix_path + "datasets/" + str(config["General"]["dataset"]) + "/ontologies/"
+            self.train_folder = self.prefix_path + "datasets/" + str(config["General"]["dataset"]) + "/ontologies/"
   
             self.alignment_folder =  self.prefix_path + "datasets/" + str(config["General"]["dataset"]) + "/alignments/"
     
@@ -75,12 +75,10 @@ class GraphParser(object):
             word_embeddings = self.model_transformer.encode(words)
 
         return word_embeddings
-
     def create_spreadsheet_from_triples(self):
         """Creates spreadsheet from triples
         """        
-        file_list = ["source.rdf", "target.rdf"]
-        
+        file_list = os.listdir(self.train_folder)
         subject, predicate, object_ls, ns_l, ontology_list= [], [], [], [], []
         for file_name in file_list:
             ontology_list.append(self.train_folder+file_name)
@@ -96,6 +94,7 @@ class GraphParser(object):
 
         data = {'subject':subject, 'predicate':predicate, 'object': object_ls,'ns':ns_l}
         data_frame = pd.DataFrame(data)
+
         return data_frame
             
             
@@ -612,40 +611,6 @@ class GraphParser(object):
         return inp_resolved
 
 
-
-    def run_spellcheck(self, inp_resolved):
-        # Spelling checker and corrector
-        logging.info ("Running spellcheck...")
-
-        url = "https://grammarbot.p.rapidapi.com/check"
-
-        headers = {
-            'x-rapidapi-host': "grammarbot.p.rapidapi.com",
-            'x-rapidapi-key': "9965b01207msh06291e57d6f2c55p1a6a16jsn0fb016da4a62",
-            'content-type': "application/x-www-form-urlencoded"
-            }
-
-        inp_spellchecked = []
-
-        for concept in inp_resolved:
-            payload = "language=en-US&text=" + urllib.parse.quote_plus(concept)
-            response = requests.request("POST", url, data=payload, headers=headers).json()
-            concept_corrected = str(concept)
-            
-            for elem in response["matches"]:
-                start, end = elem["offset"], elem["offset"] + elem["length"]
-                concept_corrected = concept_corrected[:start] + elem["replacements"][0]["value"] + concept_corrected[end:]
-            
-            if concept.lower() != concept_corrected.lower():
-                logging.info ("{} corrected to {}".format(concept, concept_corrected))
-                inp_spellchecked.append(concept_corrected)
-            else:
-                inp_spellchecked.append(concept)
-
-        return inp_spellchecked
-
-
-
     def construct_abbreviation_resolution_dict(self, all_mappings):
         # Constructs an abbrevation resolution dict
         logging.info ("Constructing abbrevation resolution dict....")
@@ -761,7 +726,7 @@ class GraphParser(object):
         return inp_filtered
 
 
-    def process(self, spellcheck=False):
+    def process(self):
 
         self.data_frame = self.cleaning_process()
 
@@ -774,11 +739,6 @@ class GraphParser(object):
         filtered_dict = self.construct_abbreviation_resolution_dict(list(ent_mappings) + list(prop_mappings))
 
         inp_resolved = self.run_abbreviation_resolution(inp, filtered_dict)
-        if spellcheck:
-            try:
-                inp_resolved = self.run_spellcheck(inp_resolved)
-            except:
-                pass
         inp = self.remove_stopwords(inp_resolved)
         emb_vals, emb_indexer, emb_indexer_inv = self.extract_embeddings(inp, extracted_elems)
         neighbours_dicts_ent, neighbours_dicts_prop, max_types = self.construct_neighbour_dicts(self.ontologies_in_alignment)
