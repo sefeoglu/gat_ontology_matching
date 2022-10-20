@@ -58,7 +58,6 @@ python src/test_model.py ${source.rdf} ${target.rdf}
 
 * 5.) evaluate the model with the MELT
 
-## Project Definition
 
 Note: The codes in train_model.py and test_model.py are partially based on the VeeAlign[2] project with the permission of its main author. I would like to thank the main author.
 
