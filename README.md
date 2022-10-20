@@ -4,6 +4,8 @@ The GraphMatcher aims to find the correspondes between two ontologies and output
 The GraphMatcher leverages Graph Attention Network[2] in its neural network structure.
 The project leverages a new neighborhood aggregation algorithm, so it examines contribution of neighboring terms which have not been used in the previous matchers before.
 
+The project has been submitted to The 17th International Workshop on Ontology Matching's OAEI 2022 (ISWC-2022) for conference track and obtained the highest F1-measure in uncertain reference alignments among other experts participating to this challenge. Its system paper has been published, and it was invited to the poster presentation session.
+
 ## Set up
 * 1.) install requirements
 ``` pip install -r requirements.txt```
