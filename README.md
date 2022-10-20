@@ -30,6 +30,7 @@ lr =                    ------>
 num_epochs =            ------>
 weight_decay =          ------>
 batch_size =            ------>
+
 ````
 
 * 3.) train the model 
