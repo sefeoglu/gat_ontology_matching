@@ -36,14 +36,25 @@ batch_size =            ------> Batch Size (8/16/32)
 ````
 
 * 3.) train the model 
-```` 
+```python
 python src/train_model.py
 
-````
+```
 * 4.) test the model
-````
+```python
 python src/test_model.py ${source.rdf} ${target.rdf}
-````
+```
+### Sample Alignment:
+```xml
+  <map>
+    <Cell>
+      <entity1 rdf:resource='http://conference#has_the_last_name'/>
+      <entity2 rdf:resource='http://confof#hasSurname'/>
+      <relation>=</relation>
+      <measure rdf:datatype='http://www.w3.org/2001/XMLSchema#float'>0.972</measure>
+    </Cell>
+  </map>
+```
 
 * 5.) evaluate the model with the MELT
 
