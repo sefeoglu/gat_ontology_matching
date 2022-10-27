@@ -61,31 +61,28 @@ class GraphParser(object):
         self.stopwords = ["has"]
 
 
-    def do_filename_lower(self):
-
-        for fileName in os.listdir(self.train_folder):
-            path_file_old = fileName
-            path_file = path_file_old[0].lower()+path_file_old[1:]
-            os.rename(self.train_folder+path_file_old, self.train_folder+path_file)
-            
-    def extractUSEEmbeddings(self, words):
+    def __extract_sentence_embeddings(self, words):
         try:
             word_embeddings = self.USE(words).numpy()
         except:
             word_embeddings = self.model_transformer.encode(words)
 
         return word_embeddings
-    def create_spreadsheet_from_triples(self):
-        """Creates spreadsheet from triples
+
+    def __extract_triples(self):
+        """Extract triples
         """        
         file_list = os.listdir(self.train_folder)
-        subject, predicate, object_ls, ns_l, ontology_list= [], [], [], [], []
+        subject, predicate, object_ls, ns_l, ontology_list = [], [], [], [], []
+
         for file_name in file_list:
+
             ontology_list.append(self.train_folder+file_name)
             rdf_file = self.train_folder+file_name
             o_parser =  OntologyParser(rdf_file)
-            triples = o_parser.get_all_triples()
+            triples = o_parser.__get_all_triples()
             ns = file_name.split('.')[0]
+
             for s, p, o in triples:
                 subject.append(s)
                 predicate.append(p)
@@ -98,31 +95,36 @@ class GraphParser(object):
         return data_frame
             
             
-    def inferred_properties(self, ontology_parser):
-
+    def __inferred_properties(self, ontology_parser):
+        ### TODO###
+        ###Next version###
         inferred_properties = []
-        classes = ontology_parser.get_classes()
+        classes = ontology_parser.__get_classes()
+
         for ent in classes:
-            inferred_properties.append(ontology_parser.get_inferred_properties(ent.split('#')[1]))
+            inferred_properties.append(ontology_parser.__get_inferred_properties(ent.split('#')[1]))
 
         return inferred_properties
 
-    def preprocess_triples(self, data_frame):   
+    def __preprocess_triples(self, data_frame):   
 
         for i in range(len(data_frame)):
+
             if len(str(data_frame.predicate[i]).split('#')[-1].split("/")[-1].replace("*>","").split("#")[-1])!=0:
                 clean_predicate = str(data_frame.predicate[i]).split('#')[-1].split("/")[-1].replace("*>","").split("#")[-1]
                 data_frame.predicate[i] = clean_predicate
+
             if len(str(data_frame.subject[i]).split('#')[-1].split("/")[-1].replace("*>","").split("#")[-1])!=0:
                 clean_subject = str(data_frame.subject[i]).split('#')[-1].split("/")[-1].replace("*>","").split("#")[-1]
                 data_frame.subject[i] = clean_subject
+
             if len(str(data_frame.object[i]).split('#')[-1].split("/")[-1].replace("*>","").split("#")[-1])!=0:
                 clean_object = str(data_frame.object[i]).split('#')[-1].split("/")[-1].replace("*>","").split("#")[-1]
                 data_frame.object[i] = clean_object
 
         return data_frame
 
-    def construct_neighbour_dicts(self,ontologies_in_alignment):
+    def __construct_neighbour_dicts(self,ontologies_in_alignment):
 
         neighbours_dicts_ent, neighbours_dicts_prop = {}, {}
         flatten = lambda l: [item for sublist in l for item in sublist]
@@ -133,28 +135,29 @@ class GraphParser(object):
             onto_frame = data_frame[data_frame.ns == ont.split('/')[-1].split('.')[0]]
             self.kg_df = pd.DataFrame({'source':onto_frame.subject, 'target':onto_frame.object, 'edge':onto_frame.predicate})
             
-            neighbours_dicts_ent.update(self.entity_neighbour_dict(ont))
+            neighbours_dicts_ent.update(self.__entity_neighbour_dict(ont))
 
-            neighbours_dicts_prop.update(self.property_neighbour_dict(ont))
+            neighbours_dicts_prop.update(self.__property_neighbour_dict(ont))
 
         max_types = np.max([len([nbr_type for nbr_type in elem if flatten(nbr_type)]) for elem in neighbours_dicts_ent.values()])
 
         return neighbours_dicts_ent, neighbours_dicts_prop, max_types
 
-    def entity_neighbour_dict(self, ontology):
+    def __entity_neighbour_dict(self, ontology):
+
         self.parser = OntologyParser(ontology)
         entities = self.parser.classes
         neighbours_dicts_ent = {}
         ont = str(ontology).split('/')[-1].split('.')[0]
 
         for ent in entities:
-            subcClass_neighbour, equivalent_neighbour, domain_neighbour, range_neighbour, parents = self.one_hop_class(ent, ont)
+            subcClass_neighbour, equivalent_neighbour, domain_neighbour, range_neighbour, parents = self.__one_hop_class(ent, ont)
             ent = ont+"#"+str(ent).split("/")[-1].replace("*>","").split("#")[-1]
             neighbours_dicts_ent[ent] = [[parents], subcClass_neighbour, domain_neighbour, range_neighbour, equivalent_neighbour]
 
         return neighbours_dicts_ent
 
-    def property_neighbour_dict(self, ontology):
+    def __property_neighbour_dict(self, ontology):
         
         parser = OntologyParser(ontology)
         properties = parser.properties
@@ -162,14 +165,14 @@ class GraphParser(object):
         ont = str(ontology).split('/')[-1].split('.')[0]
 
         for prop in properties:
-            domain, _range, subprop, inverse_prop = self.one_hop_property(prop, ont)
+            domain, _range, subprop, inverse_prop = self.__one_hop_property(prop, ont)
             prop_node = ont+"#"+str(prop).split("/")[-1].replace("*>","").split("#")[-1]
             prop = ont+"#"+str(prop).split("/")[-1].replace("*>","").split("#")[-1]
             neighbours_dicts_prop[prop]=[[prop_node], domain, _range, subprop, inverse_prop]
 
         return neighbours_dicts_prop
 
-    def one_hop_property(self, prop, ont, attention_type='two'):
+    def __one_hop_property(self, prop, ont, attention_type='two'):
         # get onProperty
         prop_range, prop_domain = [], []
         somevalues_df = self.kg_df[self.kg_df['edge']=='someValuesFrom'] 
@@ -181,31 +184,31 @@ class GraphParser(object):
         domain_df = self.kg_df[self.kg_df['edge']== 'domain']
         range_df = self.kg_df[self.kg_df['edge']== 'range']
        
-        G = self.create_graph(domain_df)
+        G = self.__create_graph(domain_df)
         prop = prop.split('#')[-1]
         ### Domain of Property
         try:
             props =  nx.neighbors(G, prop)
             for p in props:
                 if str(p).startswith('N'):
-                    prop_domain = self.unionOf(p, unionOf_df, first_df, rest_df, prop_domain, ont)
-                    prop_domain = self.Restriction(p, somevalues_df, first_df, rest_df, unionOf_df, prop_domain, ont)
-                    prop_domain = self.Restriction(p, oneof_df, first_df, rest_df, unionOf_df, prop_domain, ont)
-                    prop_domain = self.Restriction(p, allValuesFrom_df, first_df, rest_df, unionOf_df, prop_domain, ont)
+                    prop_domain = self.__unionOf(p, unionOf_df, first_df, rest_df, prop_domain, ont)
+                    prop_domain = self.__Restriction(p, somevalues_df, first_df, rest_df, unionOf_df, prop_domain, ont)
+                    prop_domain = self.__Restriction(p, oneof_df, first_df, rest_df, unionOf_df, prop_domain, ont)
+                    prop_domain = self.__Restriction(p, allValuesFrom_df, first_df, rest_df, unionOf_df, prop_domain, ont)
                 else:
                     prop_domain.append([ont+"#"+p])
         except:
             pass
         ### Range of Property###
-        G = self.create_graph(range_df)
+        G = self.__create_graph(range_df)
         try:
             props =  nx.neighbors(G, prop)
             for p in props:
                 if str(p).startswith('N'):
-                    prop_range = self.unionOf(p, unionOf_df, first_df, rest_df, prop_range, ont)
-                    prop_range = self.Restriction(p, somevalues_df, first_df, rest_df, unionOf_df, prop_range, ont)
-                    prop_range = self.Restriction(p, oneof_df, first_df, rest_df, unionOf_df, prop_range, ont)
-                    prop_range = self.Restriction(p, allValuesFrom_df, first_df, rest_df, unionOf_df, prop_range, ont)
+                    prop_range = self.__unionOf(p, unionOf_df, first_df, rest_df, prop_range, ont)
+                    prop_range = self.__Restriction(p, somevalues_df, first_df, rest_df, unionOf_df, prop_range, ont)
+                    prop_range = self.__Restriction(p, oneof_df, first_df, rest_df, unionOf_df, prop_range, ont)
+                    prop_range = self.__Restriction(p, allValuesFrom_df, first_df, rest_df, unionOf_df, prop_range, ont)
                 else:
                     prop_range.append([ont+"#"+p])
         except:
@@ -214,7 +217,7 @@ class GraphParser(object):
         ## For subprop
         subprop, inverse_prop = [], []
         if attention_type == 'two':
-            subprop, inverse_prop = self.two_hop_property(prop, subprop, inverse_prop, ont)
+            subprop, inverse_prop = self.__two_hop_property(prop, subprop, inverse_prop, ont)
         
         if len(prop_domain) != 0:
             prop_domain =  prop_domain[0]
@@ -228,33 +231,33 @@ class GraphParser(object):
 
         return prop_domain, prop_range, subprop, inverse_prop
 
-    def create_graph(self, data_frame):
+    def __create_graph(self, data_frame):
         G = nx.from_pandas_edgelist(data_frame, "source", "target", 
                           edge_attr=True, create_using=nx.MultiDiGraph())
         G = nx.to_undirected(G)
         return G
 
-    def Restriction(self,node, main_df,first_df, rest_df, union_df, class_neighbour, ont):
+    def __Restriction(self,node, main_df,first_df, rest_df, union_df, class_neighbour, ont):
         try:
-            G = self.create_graph(main_df)
+            G = self.__create_graph(main_df)
             allnodes = nx.neighbors(G, node)
             for anode in allnodes:
                 if str(anode).startswith('N'):
-                    class_neighbour = self.unionOf(anode,union_df,first_df, rest_df, class_neighbour, ont)
+                    class_neighbour = self.__unionOf(anode,union_df,first_df, rest_df, class_neighbour, ont)
                     try:
-                        G = self.create_graph(first_df)
+                        G = self.__create_graph(first_df)
                         first_nodes = nx.neighbors(G, anode)
                         for fn in first_nodes:
                             if str(fn).startswith('N'):
                                 continue
                             else:
                                 class_neighbour.append([ont+"#"+fn])
-                        G = self.create_graph(rest_df)
+                        G = self.__create_graph(rest_df)
                         rest_nodes = nx.neighbors(G, anode)
                         for rn in rest_nodes:
                             if str(rn).startswith('N'):
                                 try:
-                                    G = self.create_graph(first_df)
+                                    G = self.__create_graph(first_df)
                                     fnodes2 = nx.neighbors(G, rn)
                                     for fn2 in fnodes2:
                                         class_neighbour.append([ont+"#"+fn2])
@@ -273,36 +276,36 @@ class GraphParser(object):
 
 
 
-    def unionOf(self, node, unionOf_df, first_df,rest_df, class_neighbour, ont):
+    def __unionOf(self, node, unionOf_df, first_df,rest_df, class_neighbour, ont):
         try:
-            G = self.create_graph(unionOf_df)
+            G = self.__create_graph(unionOf_df)
             unodes = nx.neighbors(G, node)
             for unode in unodes:
                 if str(unode).startswith('N'):
                     try:
-                        G = self.create_graph(first_df)
+                        G = self.__create_graph(first_df)
                         first_nodes = nx.neighbors(G, unode)
                         for fn in first_nodes:
                             if str(fn).startswith('N'):
                                 continue
                             else:
                                 class_neighbour.append([ont+"#"+fn])
-                        G = self.create_graph(rest_df)
+                        G = self.__create_graph(rest_df)
                         rest_nodes = nx.neighbors(G, unode)
                         for rn in rest_nodes:
                             if str(rn).startswith('N'):
                                 try:
-                                    G = self.create_graph(first_df)
+                                    G = self.__create_graph(first_df)
                                     fnodes2 = nx.neighbors(G, rn)
                                     for fn2 in fnodes2:
                                         class_neighbour.append([ont+"#"+fn2])
                                     # Rest of Rest
-                                    G = self.create_graph(rest_df)
+                                    G = self.__create_graph(rest_df)
                                     rnodes2 = nx.neighbors(G, rn)
                                     for rn2 in rnodes2:
                                         if str(rn2).startswith('N'):
                                             try:
-                                                G = self.create_graph(first_df)
+                                                G = self.__create_graph(first_df)
                                                 fnodes3 = nx.neighbors(G, rn2)
                                                 for fn3 in fnodes3:
                                                     class_neighbour.append([ont+"#"+fn3])
@@ -324,10 +327,10 @@ class GraphParser(object):
         return class_neighbour
 
 
-    def onProperty(self, rsnode, onProperty_df, class_neighbour, ont):
+    def __onProperty(self, rsnode, onProperty_df, class_neighbour, ont):
 
         try:
-            G = self.create_graph(onProperty_df)
+            G = self.__create_graph(onProperty_df)
             nodes = nx.neighbors(G, rsnode)
             for node in nodes:
                 class_neighbour.append([ont+"#"+node])
@@ -337,19 +340,19 @@ class GraphParser(object):
         return class_neighbour
 
 
-    def range_of_prop(self, prop_node, range_df, class_neighbour, ont):
-        try:
-            G = self.create_graph(range_df)
-            nodes = nx.neighbors(G, prop_node)
-            for node in nodes:
-                class_neighbour.append([ont+"#"+node])
-        except:
-            pass
+    # def range_of_prop(self, prop_node, range_df, class_neighbour, ont):
+    #     try:
+    #         G = self.__create_graph(range_df)
+    #         nodes = nx.neighbors(G, prop_node)
+    #         for node in nodes:
+    #             class_neighbour.append([ont+"#"+node])
+    #     except:
+    #         pass
 
-        return class_neighbour
+    #     return class_neighbour
     
 
-    def one_hop_class(self, entity, ont):
+    def __one_hop_class(self, entity, ont):
         ## get subClassOf and equivalentClass
         class_df = self.kg_df[self.kg_df['edge']=='subClassOf'] 
         equivalent_df = self.kg_df[self.kg_df['edge']=='equivalentClass']
@@ -363,18 +366,18 @@ class GraphParser(object):
         onProperty_df = self.kg_df[self.kg_df['edge']=='onProperty']
         range_df = self.kg_df[self.kg_df['edge']=='range']
         
-        G = self.create_graph(class_df)
+        G = self.__create_graph(class_df)
         subcClass_neighbour, domain_neighbour, equivalent_neighbour, range_neighbour = [], [], [], []
         ### subClassOf for children ###
         try:
             nodes = nx.neighbors(G, entity)
             for node in nodes:
                 if str(node).startswith('N'):
-                    subcClass_neighbour = self.unionOf(node, unionOf_df, first_df, rest_df, subcClass_neighbour, ont)
-                    subcClass_neighbour = self.Restriction(node, somevalues_df, first_df, rest_df, unionOf_df, subcClass_neighbour, ont)
-                    subcClass_neighbour = self.Restriction(node, oneof_df, first_df, rest_df, unionOf_df, subcClass_neighbour, ont)
-                    subcClass_neighbour = self.Restriction(node, allValuesFrom_df, first_df, rest_df, unionOf_df, subcClass_neighbour, ont)
-                    subcClass_neighbour = self.onProperty(node, onProperty_df, subcClass_neighbour, ont)
+                    subcClass_neighbour = self.__unionOf(node, unionOf_df, first_df, rest_df, subcClass_neighbour, ont)
+                    subcClass_neighbour = self.__Restriction(node, somevalues_df, first_df, rest_df, unionOf_df, subcClass_neighbour, ont)
+                    subcClass_neighbour = self.__Restriction(node, oneof_df, first_df, rest_df, unionOf_df, subcClass_neighbour, ont)
+                    subcClass_neighbour = self.__Restriction(node, allValuesFrom_df, first_df, rest_df, unionOf_df, subcClass_neighbour, ont)
+                    subcClass_neighbour = self.__onProperty(node, onProperty_df, subcClass_neighbour, ont)
                 else:
                     subcClass_neighbour.append([ont+"#"+node])
         except:
@@ -391,11 +394,11 @@ class GraphParser(object):
                 nodes = nx.astar_path(G, entity, parent)
                 for node in nodes:
                     if str(node).startswith('N'):
-                        parents = self.unionOf(node, unionOf_df, first_df, rest_df, parents, ont)
-                        parents = self.Restriction(node, somevalues_df, first_df, rest_df, unionOf_df, parents, ont)
-                        parents = self.Restriction(node, oneof_df, first_df, rest_df, unionOf_df, parents, ont)
-                        parents = self.Restriction(node, allValuesFrom_df, first_df, rest_df, unionOf_df, parents, ont)
-                        parents = self.onProperty(node, onProperty_df, parents, ont)
+                        parents = self.__unionOf(node, unionOf_df, first_df, rest_df, parents, ont)
+                        parents = self.__Restriction(node, somevalues_df, first_df, rest_df, unionOf_df, parents, ont)
+                        parents = self.__Restriction(node, oneof_df, first_df, rest_df, unionOf_df, parents, ont)
+                        parents = self.__Restriction(node, allValuesFrom_df, first_df, rest_df, unionOf_df, parents, ont)
+                        parents = self.__onProperty(node, onProperty_df, parents, ont)
                     else:
                         parents.append([ont+"#"+node])
             except:
@@ -414,37 +417,37 @@ class GraphParser(object):
                     subcClass_neighbour.remove(child_class)
                     
         ####equivalentClass
-        G = self.create_graph(equivalent_df)
+        G = self.__create_graph(equivalent_df)
         try:
             nodes = nx.neighbors(G, entity)
             for node in nodes:
                 if str(node).startswith('N'):
-                    equivalent_neighbour = self.unionOf(node, unionOf_df, first_df, rest_df, equivalent_neighbour, ont)
-                    equivalent_neighbour = self.Restriction(node, somevalues_df, first_df, rest_df, unionOf_df, equivalent_neighbour, ont)
-                    equivalent_neighbour = self.Restriction(node, oneof_df, first_df, rest_df, unionOf_df, equivalent_neighbour, ont)
-                    equivalent_neighbour = self.Restriction(node, allValuesFrom_df, first_df, rest_df, unionOf_df, equivalent_neighbour, ont)
+                    equivalent_neighbour = self.__unionOf(node, unionOf_df, first_df, rest_df, equivalent_neighbour, ont)
+                    equivalent_neighbour = self.__Restriction(node, somevalues_df, first_df, rest_df, unionOf_df, equivalent_neighbour, ont)
+                    equivalent_neighbour = self.__Restriction(node, oneof_df, first_df, rest_df, unionOf_df, equivalent_neighbour, ont)
+                    equivalent_neighbour = self.__Restriction(node, allValuesFrom_df, first_df, rest_df, unionOf_df, equivalent_neighbour, ont)
                     ## onProperty
-                    equivalent_neighbour = self.onProperty(node, onProperty_df, equivalent_neighbour, ont)
+                    equivalent_neighbour = self.__onProperty(node, onProperty_df, equivalent_neighbour, ont)
                 else:
                     equivalent_neighbour.append([ont+"#"+node])
         except:
             pass
 
         ## Domain and Range for props
-        G = self.create_graph(range_df)
+        G = self.__create_graph(range_df)
         try:
             nodes = nx.neighbors(G, entity)
             for node in nodes:
                 range_neighbour.append([ont+"#"+node])
                 try:
-                    G = self.create_graph(domain_df)
+                    G = self.__create_graph(domain_df)
                     domain_nodes = nx.neighbors(G, node)
                     for dn in domain_nodes:
                         if str(dn).startswith('N'):
-                            range_neighbour = self.unionOf(dn, unionOf_df, first_df, rest_df, range_neighbour, ont) 
-                            range_neighbour = self.Restriction(dn, somevalues_df, first_df, rest_df, unionOf_df, range_neighbour, ont)
-                            range_neighbour = self.Restriction(dn, oneof_df, first_df, rest_df, unionOf_df, range_neighbour, ont)
-                            range_neighbour = self.Restriction(dn, allValuesFrom_df, first_df, rest_df, unionOf_df, range_neighbour, ont)
+                            range_neighbour = self.__unionOf(dn, unionOf_df, first_df, rest_df, range_neighbour, ont) 
+                            range_neighbour = self.__Restriction(dn, somevalues_df, first_df, rest_df, unionOf_df, range_neighbour, ont)
+                            range_neighbour = self.__Restriction(dn, oneof_df, first_df, rest_df, unionOf_df, range_neighbour, ont)
+                            range_neighbour = self.__Restriction(dn, allValuesFrom_df, first_df, rest_df, unionOf_df, range_neighbour, ont)
                         else:
                             range_neighbour.append([ont+"#"+dn])
                 except:
@@ -454,20 +457,20 @@ class GraphParser(object):
             pass
         ## domain probs
          
-        G = self.create_graph(domain_df)
+        G = self.__create_graph(domain_df)
         try:
-            nodes = nx.neighbors(G, entity)
+            nodes = nx.__neighbors(G, entity)
             for node in nodes:
                 domain_neighbour.append([ont+"#"+node])
                 try:
-                    G = self.create_graph(range_df)
+                    G = self.__create_graph(range_df)
                     range_nodes = nx.neighbors(G, node)
                     for rn in range_nodes:
                         if str(rn).startswith("N"):
-                            domain_neighbour = self.unionOf(rn, unionOf_df, first_df, rest_df, domain_neighbour, ont)
-                            domain_neighbour = self.Restriction(rn, somevalues_df, first_df, rest_df, unionOf_df, domain_neighbour, ont)
-                            domain_neighbour = self.Restriction(rn, oneof_df, first_df, rest_df, unionOf_df, domain_neighbour, ont)
-                            domain_neighbour = self.Restriction(rn, allValuesFrom_df, first_df, rest_df, unionOf_df, domain_neighbour, ont)
+                            domain_neighbour = self.__unionOf(rn, unionOf_df, first_df, rest_df, domain_neighbour, ont)
+                            domain_neighbour = self.__Restriction(rn, somevalues_df, first_df, rest_df, unionOf_df, domain_neighbour, ont)
+                            domain_neighbour = self.__Restriction(rn, oneof_df, first_df, rest_df, unionOf_df, domain_neighbour, ont)
+                            domain_neighbour = self.__Restriction(rn, allValuesFrom_df, first_df, rest_df, unionOf_df, domain_neighbour, ont)
                         else:
                             domain_neighbour.append([ont+"#"+rn])
                 except:
@@ -479,13 +482,13 @@ class GraphParser(object):
         return subcClass_neighbour, equivalent_neighbour, domain_neighbour, range_neighbour, parents
 
 
-    def two_hop_property(self, prop_node, subprop, inverse_prop, ont):
+    def __two_hop_property(self, prop_node, subprop, inverse_prop, ont):
 
         subProperty_df = self.kg_df[self.kg_df['edge']== 'subPropertyOf']
         inverse_df = self.kg_df[self.kg_df['edge']== 'inverseOf']
         ##subPropertyOf
         try:
-            G = self.create_graph(subProperty_df)
+            G = self.__create_graph(subProperty_df)
             nodes = nx.neighbors(G, prop_node)
             for node in nodes:
                 subprop.append([ont+"#"+node])
@@ -493,26 +496,28 @@ class GraphParser(object):
             pass
         ### inverseOf
         try:
-            G = self.create_graph(inverse_df)
+            G = self.__create_graph(inverse_df)
             nodes = nx.neighbors(G, prop_node)
             for node in nodes:
                 inverse_prop.append([ont+"#"+node])
         except:
             pass
+
         return subprop, inverse_prop
 
 
-    def cleaning_ontology_elements(self, data_frame):
+    def __cleaning_ontology_elements(self, data_frame):
         """ Clean data from ontology elements without semantic relations regarding concepts
         """        
-        full_data = self.object_cleanup(data_frame)
-        full_data = self.predicate_cleanup(full_data)
+        full_data = self.__object_cleanup(data_frame)
+        full_data = self.__predicate_cleanup(full_data)
         full_data.drop_duplicates(keep='first',inplace=True) 
 
         return full_data
 
 
-    def object_cleanup(self, full_data):
+    def __object_cleanup(self, full_data):
+
         full_data = full_data[full_data.object.str.startswith('nil') == False]
         full_data = full_data[full_data.object.str.startswith('All') == False]
         full_data = full_data[full_data.object.str.startswith('Ontology') == False]
@@ -523,26 +528,29 @@ class GraphParser(object):
         return full_data
 
 
-    def predicate_cleanup(self,full_data ):
+    def __predicate_cleanup(self,clean_full_data ):
+
         predicate_eliminator = ['cardinality', 'comment','complementOf','maxCardinality', 'minCardinality',
                        'qualifiedCardinality','versionInfo', 'hasValue', 'disjointWith']
-        clean_full_data = full_data
+
         for eliminator in predicate_eliminator:
             clean_full_data = clean_full_data[clean_full_data.predicate != eliminator]
         # There is a problem regarding hasValue.
         clean_full_data = clean_full_data[clean_full_data.predicate != 'hasValue']
+
         return clean_full_data
 
 
-    def cleaning_process(self):
-        data_frame = self.create_spreadsheet_from_triples()
-        data_frame = self.preprocess_triples(data_frame)
-        self.data_frame = self.cleaning_ontology_elements(data_frame)
+    def __cleaning_process(self):
+
+        data_frame = self.__extract_triples()
+        data_frame = self.__preprocess_triples(data_frame)
+        self.data_frame = self.__cleaning_ontology_elements(data_frame)
 
         return self.data_frame
 
 
-    def generate_mappings(self, ontologies_in_alignment, gt_mappings):
+    def __generate_mappings(self, ontologies_in_alignment, gt_mappings):
         
         ent_mappings, prop_mappings = [], []
 
@@ -591,7 +599,7 @@ class GraphParser(object):
         return (ent_mappings, prop_mappings)
 
 
-    def run_abbreviation_resolution(self, inp, filtered_dict):
+    def __run_abbreviation_resolution(self, inp, filtered_dict):
         # Resolving abbreviations to full forms
         logging.info ("Resolving abbreviations...")
         inp_resolved = []
@@ -611,7 +619,7 @@ class GraphParser(object):
         return inp_resolved
 
 
-    def construct_abbreviation_resolution_dict(self, all_mappings):
+    def __construct_abbreviation_resolution_dict(self, all_mappings):
         # Constructs an abbrevation resolution dict
         logging.info ("Constructing abbrevation resolution dict....")
     
@@ -651,7 +659,7 @@ class GraphParser(object):
                         final_dict[is_abb.group()].append((fullform, rest_first, rest_second))
 
         keys = [el for el in list(set(flatten([flatten([tup[1:] for tup in final_dict[key]]) for key in final_dict]))) if el]
-        abb_embeds = dict(zip(keys, self.extractUSEEmbeddings(keys)))
+        abb_embeds = dict(zip(keys, self.__extract_sentence_embeddings(keys)))
 
         scored_dict = {}
         for abbr in final_dict:
@@ -661,24 +669,24 @@ class GraphParser(object):
 
         resolved_dict = {key: scored_dict[key][0] for key in scored_dict}
         filtered_dict = {key: " ".join(resolved_dict[key][0].split("_")) for key in resolved_dict if resolved_dict[key][-1] > 0.9}
-        logging.info ("Results after abbreviation resolution: ", filtered_dict)
+        logging.info("Results after abbreviation resolution: ", filtered_dict)
+        
         return filtered_dict
 
 
 
-    def camel_case_split(self, identifier):
+    def __camel_case_split(self, identifier):
         # Splits camel case strings
         matches = re.finditer('.+?(?:(?<=[a-z])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])|$)', identifier)
         return [m.group(0) for m in matches]
 
 
 
-    def parse(self, word):
-        return " ".join(flatten([el.split("_") for el in self.camel_case_split(word)]))
+    def __parse(self, word):
 
+        return " ".join(flatten([el.split("_") for el in self.__camel_case_split(word)]))
 
-
-    def extract_keys(self, ontologies_in_alignment):
+    def __extract_keys(self, ontologies_in_alignment):
 
         extracted_elems = []
         data_frame = self.data_frame 
@@ -690,33 +698,37 @@ class GraphParser(object):
             self.object =list(onto_frame["object"])
             extracted_elems.extend([ont_name_filt + "#" + elem for elem in self.subject + self.predicate + self.object])
         extracted_elems = list(set(extracted_elems))
+        
         inp = []
+
         for word in extracted_elems:
             ont_name = word.split("#")[0]
             elem = word.split("#")[1]
-            inp.append(self.parse(elem))
+            inp.append(self.__parse(elem))
 
         logging.info ("Total number of extracted unique classes and properties from entire RA set: ", len(extracted_elems))
 
         extracted_elems = ["<UNK>"] + extracted_elems
+
         return inp, extracted_elems
 
 
 
-    def extract_embeddings(self, inp, extracted_elems):
+    def __extract_embeddings(self, inp, extracted_elems):
 
         # Creates embeddings to index dict, word to index dict etc
-        embeds = np.array(self.extractUSEEmbeddings(inp))
+        embeds = np.array(self.__extract_sentence_embeddings(inp))
         embeds = np.array([np.zeros(embeds.shape[1],)] + list(embeds))
         embeddings = dict(zip(extracted_elems, embeds))
         emb_vals = list(embeddings.values())
+
         emb_indexer = {key: i for i, key in enumerate(list(embeddings.keys()))}
         emb_indexer_inv = {i: key for i, key in enumerate(list(embeddings.keys()))}
 
         return emb_vals, emb_indexer, emb_indexer_inv
 
 
-    def remove_stopwords(self, inp):
+    def __remove_stopwords(self, inp):
         # Remove high frequency stopwords
         inp_filtered = []
         for elem in inp:
@@ -728,19 +740,19 @@ class GraphParser(object):
 
     def process(self):
 
-        self.data_frame = self.cleaning_process()
+        self.data_frame = self.__cleaning_process()
 
         gt_mappings = [tuple([elem.split("/")[-1] for elem in el]) for el in self.alignments]
         gt_mappings = [tuple([el.split("#")[0].rsplit(".", 1)[0] +  "#" +  el.split("#")[1] for el in tup]) for tup in gt_mappings]
 
-        ent_mappings, prop_mappings = self.generate_mappings(self.ontologies_in_alignment, gt_mappings) #OK
+        ent_mappings, prop_mappings = self.__generate_mappings(self.ontologies_in_alignment, gt_mappings) #OK
         
-        inp, extracted_elems = self.extract_keys(self.ontologies_in_alignment)
-        filtered_dict = self.construct_abbreviation_resolution_dict(list(ent_mappings) + list(prop_mappings))
+        inp, extracted_elems = self.__extract_keys(self.ontologies_in_alignment)
+        filtered_dict = self.__construct_abbreviation_resolution_dict(list(ent_mappings) + list(prop_mappings))
 
-        inp_resolved = self.run_abbreviation_resolution(inp, filtered_dict)
-        inp = self.remove_stopwords(inp_resolved)
-        emb_vals, emb_indexer, emb_indexer_inv = self.extract_embeddings(inp, extracted_elems)
-        neighbours_dicts_ent, neighbours_dicts_prop, max_types = self.construct_neighbour_dicts(self.ontologies_in_alignment)
+        inp_resolved = self.__run_abbreviation_resolution(inp, filtered_dict)
+        inp = self.__remove_stopwords(inp_resolved)
+        emb_vals, emb_indexer, emb_indexer_inv = self.__extract_embeddings(inp, extracted_elems)
+        neighbours_dicts_ent, neighbours_dicts_prop, max_types = self.__construct_neighbour_dicts(self.ontologies_in_alignment)
 
         return  ent_mappings, prop_mappings, emb_indexer, emb_indexer_inv, emb_vals, neighbours_dicts_ent, neighbours_dicts_prop, max_types

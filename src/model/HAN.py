@@ -23,13 +23,13 @@ class GATLayer(nn.Module):
         
     def forward(self, hs, adj):
         
-        semantic_embeddings = []
+        gat_embeddings = []
         for i, h in enumerate(hs):
-            semantic_embeddings.append(self.gat(h, adj[i]))
-        semantic_embeddings = torch.stack(semantic_embeddings)
+            gat_embeddings.append(self.gat(h, adj[i]))
+        gat_embeddings = torch.stack(gat_embeddings)
 
         
-        return  semantic_embeddings            
+        return  gat_embeddings            
 
 class SiamHAN(nn.Module):
 
@@ -83,30 +83,30 @@ class SiamHAN(nn.Module):
                 # create graph structure
                 h, adj = self.create_adjacency_and_homgraph(feature_emb[j], _node_emb)
                 
-                semantic_attention_out = self.gnn(h, adj)
-                semantic_attention_out = torch.sum((self.v[None,:,None] * semantic_attention_out), dim=1)
+                graph_attention_out = self.gnn(h, adj)
+                graph_attention_out = torch.sum((self.v[None,:,None] * graph_attention_out), dim=1)
                 if self.n_neighbours == 2:
-                    h_prime = self.weight*semantic_attention_out[0,:]\
-                        + self.weight*semantic_attention_out[1,:]
+                    h_prime = self.weight*graph_attention_out[0,:]\
+                        + self.weight*graph_attention_out[1,:]
                     h_primes.append(h_prime)
 
                 if self.n_neighbours == 3:
-                    h_prime = self.weight*semantic_attention_out[0,:]\
-                        + self.weight*semantic_attention_out[1,:]\
-                        +self.weight*semantic_attention_out[2,:]
+                    h_prime = self.weight*graph_attention_out[0,:]\
+                        + self.weight*graph_attention_out[1,:]\
+                        +self.weight*graph_attention_out[2,:]
                     h_primes.append(h_prime)
                 if self.n_neighbours == 4:
-                    h_prime = self.weight*semantic_attention_out[0,:]\
-                        + self.weight*semantic_attention_out[1,:]\
-                        +self.weight*semantic_attention_out[2,:]\
-                        +self.weight*semantic_attention_out[3,:]
+                    h_prime = self.weight*graph_attention_out[0,:]\
+                        + self.weight*graph_attention_out[1,:]\
+                        +self.weight*graph_attention_out[2,:]\
+                        +self.weight*graph_attention_out[3,:]
                     h_primes.append(h_prime)
                 if self.n_neighbours == 5:
-                    h_prime = self.weight*semantic_attention_out[0,:]\
-                        + self.weight*semantic_attention_out[1,:]\
-                        +self.weight*semantic_attention_out[2,:]\
-                        +self.weight*semantic_attention_out[3,:]\
-                        +self.weight*semantic_attention_out[4,:]
+                    h_prime = self.weight*graph_attention_out[0,:]\
+                        + self.weight*graph_attention_out[1,:]\
+                        +self.weight*graph_attention_out[2,:]\
+                        +self.weight*graph_attention_out[3,:]\
+                        +self.weight*graph_attention_out[4,:]
                     h_primes.append(h_prime)
 
             h_primes = torch.stack(h_primes)
@@ -166,4 +166,5 @@ class SiamHAN(nn.Module):
 
         adj = self.create_adj(len(h))
         h_tensor = torch.DoubleTensor(h).to(self.device)
+
         return h_tensor, adj
