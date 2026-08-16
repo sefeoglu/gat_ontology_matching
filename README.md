@@ -1,6 +1,3 @@
-<p align="center">
-  <img src="assets/graphmatcher-icon.svg" alt="GraphMatcher icon" width="180" />
-</p>
 
 # GraphMatcher
 
@@ -8,6 +5,11 @@
 ![PyTorch](https://img.shields.io/badge/PyTorch-2.5.1-EE4C2C?logo=pytorch&logoColor=white)
 ![License](https://img.shields.io/badge/License-MIT-green)
 ![Status](https://img.shields.io/badge/Status-Active-success)
+
+
+<p align="center">
+  <img src="assets/graphmatcher-icon.svg" alt="GraphMatcher icon" width="180" />
+</p>
 
 GraphMatcher is a graph-based ontology matching system that aligns entities from two ontologies using a neural architecture centered on graph attention and neighborhood-aware representations.
 
