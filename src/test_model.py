@@ -43,16 +43,12 @@ def extract_ns(ontology):
 ont_name1, ont_name2 = sys.argv[1].replace("file:",""), sys.argv[2].replace("file:","")
 
 
-PREFIX_PATH = "/".join(os.path.dirname(os.path.abspath(__file__)).split("/")[:-1]) + "/"
+from project_paths import load_config, get_model_path
 
-# Read `config.ini` and initialize parameter values
-config = configparser.ConfigParser()
-config.read(PREFIX_PATH + 'config.ini')
-
-logging.info("Prefix path: ", PREFIX_PATH)
+config = load_config()
 
 # Initialize variables from config
-model_path = PREFIX_PATH + str(config["Paths"]["load_model_path"])
+model_path = str(get_model_path(str(config["Paths"]["load_model_path"])))
 
 
 

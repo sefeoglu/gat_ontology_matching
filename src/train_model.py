@@ -27,13 +27,9 @@ threshold_results = {}
 class Trainer(object):
 
     def __init__(self, num_epochs, batch_size, lr, weight_decay, MODEL_NAME):
-        PREFIX_PATH = "/".join(os.path.dirname(os.path.abspath(__file__)).split("/")[:-1]) + "/"
+        from project_paths import PROJECT_ROOT, get_dataset_dir, get_alignment_dir, get_model_path, load_config
 
-        print ("Prefix path: ", PREFIX_PATH)
-    
-        # Read `config.ini` and initialize parameter values
-        config = configparser.ConfigParser()
-        config.read(PREFIX_PATH + 'config.ini')
+        config = load_config()
         self.MODEL_NAME = MODEL_NAME
         # Initialize variables from config
 
@@ -41,9 +37,9 @@ class Trainer(object):
         self.K = int(config["General"]["K"])
         self.ontology_split = str(config["General"]["ontology_split"]) == "True"
         self.max_false_examples = int(config["General"]["max_false_examples"])
-        self.train_folder = PREFIX_PATH + "datasets/" + str(config["General"]["dataset"]) + "/ontologies/"
-        self.model_path = PREFIX_PATH + str(config["Paths"]["save_model_path"])
-        self.alignment_folder = PREFIX_PATH +  "datasets/" + str(config["General"]['dataset']) + str(config["Paths"]["alignment_folder"])
+        self.train_folder = str(get_dataset_dir(str(config["General"]["dataset"]).strip())) + os.sep
+        self.model_path = str(get_model_path(str(config["Paths"]["save_model_path"])))
+        self.alignment_folder = str(get_alignment_dir(str(config["General"]["dataset"]).strip())) + os.sep
         self.max_paths = int(config["Parameters"]["max_paths"])
         self.max_pathlen = int(config["Parameters"]["max_pathlen"])
         
@@ -477,12 +473,9 @@ class Trainer(object):
 
 
 if __name__ == "__main__":
-    
-    PREFIX_PATH = "/".join(os.path.dirname(os.path.abspath(__file__)).split("/")[:-1]) + "/"
+    from project_paths import load_config
 
-    # Read `config.ini` and initialize parameter values
-    config = configparser.ConfigParser()
-    config.read(PREFIX_PATH + 'config.ini')
+    config = load_config()
     lr = float(config["Hyperparameters"]["lr"])
     num_epochs = int(config["Hyperparameters"]["num_epochs"])
     weight_decay = float(config["Hyperparameters"]["weight_decay"])

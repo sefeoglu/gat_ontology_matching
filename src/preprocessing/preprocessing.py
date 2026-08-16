@@ -10,11 +10,11 @@ from scipy import spatial
 from sentence_transformers import SentenceTransformer
 from xml.dom import minidom
 
-PACKAGE_PARENT = '.'
+PACKAGE_PARENT = '..'
 SCRIPT_DIR = os.path.dirname(os.path.realpath(os.path.join(os.getcwd(), os.path.expanduser(__file__))))
 sys.path.append(os.path.normpath(os.path.join(SCRIPT_DIR, PACKAGE_PARENT)))
 
-
+from project_paths import get_dataset_dir, get_alignment_dir, load_config
 from OntologyParser import OntologyParser
 
 try:
@@ -39,14 +39,12 @@ class GraphParser(object):
         else:
             self.alignments = alignments
         if train_folder == None or alignments_folder == None:
-            self.prefix_path = "/".join(os.path.dirname(os.path.abspath(__file__)).split("/")[:-2]) + "/"
-            config = configparser.ConfigParser()
-            config.read(self.prefix_path + 'config.ini')
-            self.train_folder = self.prefix_path + "datasets/" + str(config["General"]["dataset"]) + "/ontologies/"
-  
-            self.alignment_folder =  self.prefix_path + "datasets/" + str(config["General"]["dataset"]) + "/alignments/"
-    
-        else: 
+            config = load_config()
+            dataset_name = str(config["General"]["dataset"]).strip()
+            self.train_folder = str(get_dataset_dir(dataset_name)) + os.sep
+            self.alignment_folder = str(get_alignment_dir(dataset_name)) + os.sep
+
+        else:
             self.train_folder = train_folder
             self.alignment_folder = alignments_folder
         
