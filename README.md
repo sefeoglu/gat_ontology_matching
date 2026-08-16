@@ -1,97 +1,133 @@
 # GraphMatcher
-The GraphMatcher aims to find the correspondes between two ontologies and outputs the possible alignments between them.
 
-The GraphMatcher leverages Graph Attention Network[2] in its neural network structure.
-The project leverages a new neighborhood aggregation algorithm, so it examines contribution of neighboring terms which have not been used in the previous matchers before.
+![Python 3.9+](https://img.shields.io/badge/Python-3.9%2B-blue?logo=python&logoColor=white)
+![PyTorch](https://img.shields.io/badge/PyTorch-2.5.1-EE4C2C?logo=pytorch&logoColor=white)
+![License](https://img.shields.io/badge/License-MIT-green)
+![Status](https://img.shields.io/badge/Status-Active-success)
 
-The project has been submitted to The 17th International Workshop on Ontology Matching's OAEI 2022 (ISWC-2022) for conference track and obtained the highest F1-measure in uncertain reference alignments among other experts participating to this challenge. Its system paper has been published, and it was invited to the poster presentation session.
+GraphMatcher is a graph-based ontology matching system that aligns entities from two ontologies using a neural architecture centered on graph attention and neighborhood-aware representations.
 
-## Set up
-* 1.) install requirements
-``` pip install -r requirements.txt```
+The project combines ontology preprocessing, graph construction, and a graph attention network to predict likely alignments between concepts and properties across two RDF/OWL sources.
 
-* 2.) set the parameters in the config.ini
-````
+## Highlights
+
+- Ontology alignment for RDF/OWL-based datasets
+- Graph attention network for neighborhood-aware matching
+- Support for entity and property matching
+- Config-driven dataset and model paths
+- Python 3.9-compatible dependency set
+
+## Project goals
+
+This project follows the idea that ontology alignment can benefit from structural context, not just lexical similarity. In practice, the model learns from neighboring concepts and relations to estimate whether two entities represent the same concept across ontologies.
+
+The work was developed for the OAEI conference track and was designed to score strong matches in uncertain reference alignment settings.
+
+## Repository structure
+
+```text
+.
+├── config.ini
+├── requirements.txt
+├── datasets/
+│   └── conference/
+│       ├── ontologies/
+│       └── alignments/
+├── outputs/
+├── saved_models/
+├── src/
+│   ├── model/
+│   ├── preprocessing/
+│   ├── train_model.py
+│   ├── test_model.py
+│   └── project_paths.py
+├── tests/
+│   └── test_project_paths.py
+└── README.md
+```
+
+## Setup
+
+1. Create a virtual environment and install dependencies:
+
+```bash
+python3.9 -m venv .venv39
+source .venv39/bin/activate
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+```
+
+2. Configure the project in `config.ini`:
+
+```ini
 [General]
-dataset =               ------> name of a dataset e.g., conference.
-K =                     ------> the parameter for K fold cross-validation
-ontology_split =        ------> True/False
-max_false_examples =    ------>
+dataset = conference
+K = 5
+ontology_split = False
+max_false_examples = 150000
 
 [Paths]
-dataset_folder =        ------> a path to the ontologies
-alignment_folder =      ------> a path to the reference alignments
-save_model_path =       ------> save the model to the path
-load_model_path =       ------> model path
-output_folder =         ------> The output folder for the alignments
+dataset_folder = datasets
+alignment_folder = /alignments/
+save_model_path = saved_models/conference.pt
+load_model_path = saved_models/conference.pt
+output_folder = outputs/
 
 [Parameters]
-max_paths =             ------>
-max_pathlen =           ------> ( number of neighboring concepts' types: Equivalent class, subclass of(general to specific or specific to general(2))...
-[Hyperparameters] 
+max_paths = 21
+max_pathlen = 8
 
-lr =                    ------> learning rate
-num_epochs =            ------> number of epochs
-weight_decay =          ------> Weight decay
-batch_size =            ------> Batch Size (8/16/32)
+[Hyperparameters]
+lr = 0.001
+num_epochs = 5
+weight_decay = 0.001
+batch_size = 32
+```
 
-````
+> The project resolves paths relative to the repository root, so local absolute paths are no longer required.
 
-* 3.) train the model 
-```python
+## Training
+
+Run the training pipeline from the project root:
+
+```bash
 python src/train_model.py
+```
 
+## Testing
+
+Evaluate alignment between two ontology files:
+
+```bash
+python src/test_model.py path/to/source.owl path/to/target.owl
 ```
-* 4.) test the model
-```python
-python src/test_model.py ${source.rdf} ${target.rdf}
-```
-### Sample Alignment:
+
+## Example alignment output
+
 ```xml
-  <map>
-    <Cell>
-      <entity1 rdf:resource='http://conference#has_the_last_name'/>
-      <entity2 rdf:resource='http://confof#hasSurname'/>
-      <relation>=</relation>
-      <measure rdf:datatype='http://www.w3.org/2001/XMLSchema#float'>0.972</measure>
-    </Cell>
-  </map>
+<map>
+  <Cell>
+    <entity1 rdf:resource='http://conference#has_the_last_name'/>
+    <entity2 rdf:resource='http://confof#hasSurname'/>
+    <relation>=</relation>
+    <measure rdf:datatype='http://www.w3.org/2001/XMLSchema#float'>0.972</measure>
+  </Cell>
+</map>
 ```
 
-* 5.) evaluate the model with the MELT
+## Notes
 
+- This codebase uses `rdflib` for ontology parsing instead of the legacy `ontospy` package.
+- The project is validated for Python 3.9, which is the recommended runtime for the pinned dependency set.
+- The path logic was centralized in `src/project_paths.py` so the project behaves consistently across machines.
 
-Note: The codes in train_model.py and test_model.py are partially based on the VeeAlign[2] project with the permission of its main author. I would like to thank the main author.
+## References
 
-## References:
-[1] 
-````
-@inproceedings{iyer-etal-2021-veealign,
-    title = "{V}ee{A}lign: Multifaceted Context Representation Using Dual Attention for Ontology Alignment",
-    author = "Iyer, Vivek  and
-      Agarwal, Arvind  and
-      Kumar, Harshit",
-    booktitle = "Proceedings of the 2021 Conference on Empirical Methods in Natural Language Processing",
-    month = nov,
-    year = "2021",
-    address = "Online and Punta Cana, Dominican Republic",
-    publisher = "Association for Computational Linguistics",
-    url = "https://aclanthology.org/2021.emnlp-main.842",
-    doi = "10.18653/v1/2021.emnlp-main.842",
-    pages = "10780--10792",
-   }
-````
-[2]
-````
-@misc{https://doi.org/10.48550/arxiv.1710.10903,
-  title = {Graph Attention Networks},
-  author = {Veličković, Petar and Cucurull, Guillem and Casanova, Arantxa and Romero, Adriana and Liò, Pietro and Bengio, Yoshua},
-  keywords = {Machine Learning (stat.ML), Artificial Intelligence (cs.AI), Machine Learning (cs.LG), Social and Information Networks (cs.SI), FOS: Computer and information sciences, FOS: Computer and information sciences},
-  url = {https://arxiv.org/abs/1710.10903},
-  publisher = {arXiv},
-  doi = {10.48550/ARXIV.1710.10903},
-  year = {2017},
-  copyright = {arXiv.org perpetual, non-exclusive license}
-}
+[1] Iyer, Vivek, Arvind Agarwal, and Harshit Kumar. "VeeAlign: Multifaceted Context Representation Using Dual Attention for Ontology Alignment." Proceedings of EMNLP 2021.
 
-````
+[2] Veličković, Petar, et al. "Graph Attention Networks." arXiv preprint arXiv:1710.10903 (2017).
+
+## Acknowledgements
+
+This project builds on the VeeAlign design and uses a graph attention approach inspired by the GAT paper above.
+
