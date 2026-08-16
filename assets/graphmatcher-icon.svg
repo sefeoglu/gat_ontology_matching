@@ -1,0 +1,82 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">GraphMatcher icon</title>
+  <desc id="desc">A circular badge showing two ontology node clusters linked by a matching bridge.</desc>
+  <defs>
+    <linearGradient id="bg" x1="96" y1="64" x2="416" y2="448" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0B1020"/>
+      <stop offset="0.5" stop-color="#1A1B4B"/>
+      <stop offset="1" stop-color="#0A2A3C"/>
+    </linearGradient>
+    <linearGradient id="panel" x1="120" y1="144" x2="392" y2="368" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#1D2B53"/>
+      <stop offset="0.55" stop-color="#10243F"/>
+      <stop offset="1" stop-color="#132A2A"/>
+    </linearGradient>
+    <linearGradient id="match" x1="156" y1="256" x2="356" y2="256" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#60A5FA"/>
+      <stop offset="0.5" stop-color="#A855F7"/>
+      <stop offset="1" stop-color="#34D399"/>
+    </linearGradient>
+    <linearGradient id="link" x1="170" y1="256" x2="342" y2="256" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FDE68A" stop-opacity="0.15"/>
+      <stop offset="0.5" stop-color="#F8FAFC" stop-opacity="0.98"/>
+      <stop offset="1" stop-color="#67E8F9" stop-opacity="0.15"/>
+    </linearGradient>
+    <filter id="shadow" x="80" y="80" width="352" height="352" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="10" stdDeviation="14" flood-color="#000000" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+  <circle cx="256" cy="256" r="224" fill="url(#bg)"/>
+  <circle cx="256" cy="256" r="224" stroke="#4C1D95" stroke-width="8" stroke-opacity="0.65"/>
+
+  <g filter="url(#shadow)">
+    <rect x="102" y="146" width="140" height="220" rx="28" fill="url(#panel)" stroke="#7C3AED" stroke-opacity="0.55" stroke-width="6"/>
+    <rect x="270" y="146" width="140" height="220" rx="28" fill="url(#panel)" stroke="#06B6D4" stroke-opacity="0.55" stroke-width="6"/>
+
+    <path d="M122 180H194" stroke="#8B5CF6" stroke-width="10" stroke-linecap="round"/>
+    <path d="M290 180H362" stroke="#22D3EE" stroke-width="10" stroke-linecap="round"/>
+    <circle cx="128" cy="180" r="10" fill="#8B5CF6"/>
+    <circle cx="156" cy="180" r="10" fill="#A78BFA" fill-opacity="0.9"/>
+    <circle cx="184" cy="180" r="10" fill="#38BDF8" fill-opacity="0.95"/>
+    <circle cx="328" cy="180" r="10" fill="#34D399" fill-opacity="0.95"/>
+    <circle cx="356" cy="180" r="10" fill="#22D3EE" fill-opacity="0.9"/>
+    <circle cx="384" cy="180" r="10" fill="#67E8F9"/>
+
+    <g stroke="#CBD5E1" stroke-opacity="0.75" stroke-width="6" stroke-linecap="round">
+      <path d="M132 220H170"/>
+      <path d="M156 220V248"/>
+      <path d="M170 220L194 198"/>
+      <path d="M300 220H338"/>
+      <path d="M324 220V248"/>
+      <path d="M338 220L362 198"/>
+      <path d="M132 290H170"/>
+      <path d="M170 290L194 312"/>
+      <path d="M300 290H338"/>
+      <path d="M338 290L362 312"/>
+    </g>
+
+    <g fill="#F8FAFC" stroke="#0F172A" stroke-width="6">
+      <circle cx="132" cy="220" r="12" fill="#C4B5FD"/>
+      <circle cx="170" cy="220" r="12" fill="#7DD3FC"/>
+      <circle cx="194" cy="198" r="12" fill="#F9A8D4"/>
+      <circle cx="156" cy="248" r="12" fill="#FDE68A"/>
+      <circle cx="132" cy="290" r="12" fill="#A7F3D0"/>
+      <circle cx="170" cy="290" r="12" fill="#FCA5A5"/>
+      <circle cx="194" cy="312" r="12" fill="#67E8F9"/>
+
+      <circle cx="300" cy="220" r="12" fill="#93C5FD"/>
+      <circle cx="338" cy="220" r="12" fill="#2DD4BF"/>
+      <circle cx="362" cy="198" r="12" fill="#FDE68A"/>
+      <circle cx="324" cy="248" r="12" fill="#86EFAC"/>
+      <circle cx="300" cy="290" r="12" fill="#F9A8D4"/>
+      <circle cx="338" cy="290" r="12" fill="#FDBA74"/>
+      <circle cx="362" cy="312" r="12" fill="#C4B5FD"/>
+    </g>
+
+    <path d="M170 256C206 224 226 216 256 216C286 216 306 224 342 256C306 288 286 296 256 296C226 296 206 288 170 256Z" fill="url(#match)" fill-opacity="0.14" stroke="url(#link)" stroke-width="6"/>
+    <path d="M208 256H304" stroke="url(#link)" stroke-width="14" stroke-linecap="round"/>
+    <path d="M286 242L304 256L286 270" stroke="#F8FAFC" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M208 256L186 244" stroke="#FDE68A" stroke-width="10" stroke-linecap="round"/>
+    <path d="M208 256L186 268" stroke="#67E8F9" stroke-width="10" stroke-linecap="round"/>
+  </g>
+</svg>

@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/graphmatcher-icon.svg" alt="GraphMatcher icon" width="180" />
+</p>
+
 # GraphMatcher
 
 ![Python 3.9+](https://img.shields.io/badge/Python-3.9%2B-blue?logo=python&logoColor=white)
@@ -15,7 +19,7 @@ If you use GraphMatcher in your work, please cite:
 ```bibtex
 @inproceedings{efeoglu2022graphmatcher,
   title = {GraphMatcher: A Graph Representation Learning Approach for Ontology Matching},
-  author = {Efeoglu, S.},
+  author = {Efeoglu, Sefika},
   booktitle = {Proceedings of the 17th International Workshop on Ontology Matching (OM 2022)},
   year = {2022},
   series = {CEUR Workshop Proceedings},
