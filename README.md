@@ -121,6 +121,34 @@ python src/test_model.py path/to/source.owl path/to/target.owl
 - The project is validated for Python 3.9, which is the recommended runtime for the pinned dependency set.
 - The path logic was centralized in `src/project_paths.py` so the project behaves consistently across machines.
 
+## Citation
+
+If you use GraphMatcher in your work, please cite:
+
+```bibtex
+@inproceedings{efeoglu2022graphmatcher,
+  title = {GraphMatcher: A Graph Representation Learning Approach for Ontology Matching},
+  author = {Efeoglu, S.},
+  booktitle = {Proceedings of the 17th International Workshop on Ontology Matching (OM 2022)},
+  year = {2022},
+  series = {CEUR Workshop Proceedings},
+  note = {Co-located with ISWC 2022}
+}
+```
+
+Also, the paper is referenced as:
+
+```text
+{ISWC 2022}
+{\normalfont
+\textbf{S. Efeoglu}. 
+\textit{GraphMatcher: A Graph Representation Learning Approach for
+Ontology Matching}. 
+In \textit{Proceedings of the 17th International Workshop on Ontology
+Matching (OM 2022)}, co-located with ISWC 2022. 
+CEUR Workshop Proceedings.}
+```
+
 ## References
 
 [1] Iyer, Vivek, Arvind Agarwal, and Harshit Kumar. "VeeAlign: Multifaceted Context Representation Using Dual Attention for Ontology Alignment." Proceedings of EMNLP 2021.
